@@ -47,6 +47,7 @@ class Recognizer {
         Recognizer(Model *model, float sample_frequency, char const *grammar);
         ~Recognizer();
         void SetMaxAlternatives(int max_alternatives);
+        void SetResultOptions(const char *result_opts);
         void SetSpkModel(SpkModel *spk_model);
         void SetWords(bool words);
         void SetNLSML(bool nlsml);
@@ -57,7 +58,7 @@ class Recognizer {
         const char* FinalResult();
         const char* PartialResult();
         void Reset();
-
+        
     private:
         void InitState();
         void InitRescoring();
@@ -95,6 +96,7 @@ class Recognizer {
 
         // Other
         int max_alternatives_ = 0; // Disable alternatives by default
+        const char *result_opts_ = "words"; // By default enable only word-level results
         bool words_ = false;
         bool nlsml_ = false;
 
