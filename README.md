@@ -24,3 +24,20 @@ big clusters.
 
 For installation instructions, examples and documentation visit [Vosk
 Website](https://alphacephei.com/vosk).
+
+# Test the functionality implemented in this repository using C scripts
+
+1. Clone the `ETS fork` of the `Vosk API` repositiory [https://github.com/EducationalTestingService/vosk-api](https://github.com/EducationalTestingService/vosk-api).
+
+2. The docker image for building Kaldi and the Python wheels is located in the cloned repository under `travis`.
+
+   Build and run the docker image as follows:
+
+   ```
+   docker build --file Dockerfile.manylinux --tag alphacep/kaldi-manylinux:latest .
+   docker run -ti -v $(pwd)/..:/io alphacep/kaldi-manylinux /bin/bash
+   ```
+
+3. Inside the docker container under the `io/src` folder run `KALDI_ROOT=/opt/kaldi make all` to compile your changes.
+
+4. Go to the `io/c` folder and run `KALDI_ROOT=/opt/kaldi make all` to compile the C scripts. This should create an executable for the C script. To test the custom functionalities built by ETS team, run the command `./test_phone_results`. This should print out the expected results for the script.

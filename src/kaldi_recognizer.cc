@@ -474,14 +474,15 @@ static bool CompactLatticeToWordPronsWeight(
        begin_times->push_back(cur_time);
        lengths->push_back(length);
 
-       //We return LM and acoustic costs in addition to phoneme information
-       // from `ComputePhoneInfo`
+       // We return LM and acoustic costs for each word in the lattice
+       // in addition to phoneme information from `ComputePhoneInfo`
        lm_costs->push_back(arc.weight.Weight().Value1());
        acoustic_costs->push_back(arc.weight.Weight().Value2());
 
        const std::vector<int32> &arc_alignment = arc.weight.String();
        std::vector<std::vector<int32> > split_alignment;
-       //Split up the TransitionIds in alignment into their individual phones
+
+       // Split up the TransitionIds in alignment into their individual phones
        SplitToPhones(tmodel, arc_alignment, &split_alignment);
        std::vector<int32> phones(split_alignment.size());
        std::vector<int32> plengths(split_alignment.size());
@@ -505,7 +506,8 @@ static bool CompactLatticeToWordPronsWeight(
 
 void ComputePhoneInfo(const TransitionModel &tmodel, const CompactLattice &clat, const fst::SymbolTable &word_syms_, const fst::SymbolTable &phone_symbol_table_, std::vector<std::vector<std::string> > *phoneme_labels, std::vector<std::vector<int32> > *phone_lengths, std::vector<kaldi::BaseFloat> *lm_costs, std::vector<kaldi::BaseFloat> *acoustic_costs)
 {    
-    //This function computes the phone information i.e. phone labels and lengths 
+    // This function computes the phone information i.e. phone labels and lengths
+    // and also return the language model and acoustic costs per word 
     vector<int32> words_ph_ids, times_lat, lengths;
     vector<vector<int32> > prons;
 
@@ -550,11 +552,11 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
     std::vector<kaldi::BaseFloat> acoustic_costs;
 
     if (model_->phone_syms_loaded_){  
-        //Compute phone info if phone symbol table is provided  
+        // Compute phone info if phone symbol table is provided  
 
         ComputePhoneInfo(*model_->trans_model_, aligned_lat, *model_->word_syms_, *model_->phone_symbol_table_, &phoneme_labels, &phone_lengths, &lm_costs, &acoustic_costs);
         phon_vec_size = phoneme_labels.size();
-        mbr_options.print_silence = true; //Print silences in the word-level outputs only if you need phone outputs
+        mbr_options.print_silence = true; // Print silences in the word-level outputs only if you need phone outputs
         mbr_options.decode_mbr = false; // Turn off MBR decoding if you want to print out phone information
     }
     
@@ -572,19 +574,11 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
     // Create JSON object
     for (int i = 0; i < size; i++) {
         json::JSON word;
-
-        /*if (words_) {
-            word["word"] = model_->word_syms_->Find(word_ids[i]);
-            word["start"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
-            word["end"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].second) * 0.03;
-            word["conf"] = conf[i];
-            obj["result"].append(word);
-        }*/
     
-        //When printing silences some extra silence words that we call "gaps" that have length of 0 seconds 
-        //get printed out so we filter them out
-        //It is possible to have trailing silences in the word output that are not present in the phone output so we 
-        //filter them to generate consistent outputs
+        // When printing silences some extra silence words that we call "gaps" that have length of 0 seconds 
+        // get printed out so we filter them out
+        // It is possible to have trailing silences in the word output that are not present in the phone output so we 
+        // filter them to generate consistent outputs
         if ((samples_round_start_ / sample_frequency_ + (frame_offset_ + (times[i].second-times[i].first)) * 0.03) > 0.0 && phone_ptr < phon_vec_size) {
             
             word["word"] = model_->word_syms_->Find(word_ids[i]);
@@ -599,7 +593,7 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
                 word["lm_cost"] = lm_costs[phone_ptr]; 
                 word["acoustic_cost"] = acoustic_costs[phone_ptr];
                         
-                //If there are silences without phone output (since they are coming from different places) then set the label and timestamps
+                // If there are silences without phone output (since they are coming from different places) then set the label and timestamps
                 if (word_ids[i] == 0 && phoneme_labels[phone_ptr][0] != "SIL"){
                     word["phone_label"].append( "SIL" );
                     phone_start_time=samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
@@ -608,7 +602,7 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
                     word["phone_end"].append( phone_end_time );
                 }
 
-                //Else add the information generated from ComputePhoneInfo to results
+                // Else add the information generated from ComputePhoneInfo to results
                 else {
                     for ( auto phone: phoneme_labels[phone_ptr]){
 
