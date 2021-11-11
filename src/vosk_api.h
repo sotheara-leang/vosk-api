@@ -156,67 +156,84 @@ void vosk_recognizer_set_max_alternatives(VoskRecognizer *recognizer, int max_al
 
 /** Configures recognizer result options (i.e. whether to print word-level results or word and phone level results together)
  * With phone level results (i.e. if configured with "phones" option)
+ * Also additionally returns acoustic costs and language model costs per word 
  * <pre>
  *    {
  *     "result" : [{
- *         "conf" : 0.998335,
+ *         "acoustic_cost" : -96.086105,
+ *         "conf" : 0.997802,
  *         "end" : 0.450000,
+ *         "lm_cost" : 29.145569,
  *         "phone_end" : [0.450000],
  *         "phone_label" : ["SIL"],
  *         "phone_start" : [0.000000],
  *         "start" : 0.000000,
  *         "word" : "<eps>"
  *       }, {
- *         "conf" : 0.998324,
+ *         "acoustic_cost" : -45.020378,
+ *         "conf" : 0.997153,
  *         "end" : 0.600000,
+ *         "lm_cost" : 21.490904,
  *         "phone_end" : [0.540000, 0.600000],
  *         "phone_label" : ["DH_B", "AH1_E"],
  *         "phone_start" : [0.450000, 0.540000],
  *         "start" : 0.450000,
  *         "word" : "THE"
  *       }, {
- *         "conf" : 0.574095,
+ *         "acoustic_cost" : -21.904301,
+ *         "conf" : 0.553237,
  *         "end" : 1.200000,
+ *         "lm_cost" : 6.307260,
  *         "phone_end" : [0.720000, 0.810000, 0.870000, 0.930000, 0.990000, 1.080000, 1.110000, 1.200000],
  *         "phone_label" : ["S_B", "T_I", "UW1_I", "D_I", "AH0_I", "N_I", "T_I", "S_E"],
  *         "phone_start" : [0.600000, 0.720000, 0.810000, 0.870000, 0.930000, 0.990000, 1.080000, 1.110000],
  *         "start" : 0.600000,
  *         "word" : "STUDENT'S"
  *       }, {
- *         "conf" : 0.923344,
+ *         "acoustic_cost" : 0.000000,
+ *         "conf" : 0.922575,
  *         "end" : 1.260000,
- *         "phone_end" : [1.260111],
+ *         "lm_cost" : 0.000000,
+ *         "phone_end" : [1.260130],
  *         "phone_label" : ["SIL"],
- *         "phone_start" : [1.200111],
- *         "start" : 1.200111,
+ *         "phone_start" : [1.200130],
+ *         "start" : 1.200130,
  *         "word" : "<eps>"
  *       }, {
+ *         "acoustic_cost" : -22.304758,
  *         "conf" : 1.000000,
  *         "end" : 1.800000,
+ *         "lm_cost" : 8.857350,
  *         "phone_end" : [1.440000, 1.500000, 1.590000, 1.680000, 1.800000],
  *         "phone_label" : ["S_B", "T_I", "AH1_I", "D_I", "IY0_E"],
  *         "phone_start" : [1.260000, 1.440000, 1.500000, 1.590000, 1.680000],
  *         "start" : 1.260000,
  *         "word" : "STUDY"
  *       }, {
+ *         "acoustic_cost" : 0.000000,
  *         "conf" : 1.000000,
  *         "end" : 1.860000,
+ *         "lm_cost" : 0.000000,
  *         "phone_end" : [1.860000],
  *         "phone_label" : ["AH0_S"],
  *         "phone_start" : [1.800000],
  *         "start" : 1.800000,
  *         "word" : "A"
  *       }, {
+ *         "acoustic_cost" : -105.112961,
  *         "conf" : 1.000000,
  *         "end" : 2.190000,
+ *         "lm_cost" : 12.693477,
  *         "phone_end" : [1.980000, 2.100000, 2.190000],
  *         "phone_label" : ["L_B", "AA1_I", "T_E"],
  *         "phone_start" : [1.860000, 1.980000, 2.100000],
  *         "start" : 1.860000,
  *         "word" : "LOT"
  *       }, {
+ *        "acoustic_cost" : 0.000000,
  *         "conf" : 1.000000,
  *         "end" : 2.880000,
+ *         "lm_cost" : 4.726567,
  *         "phone_end" : [2.880000],
  *         "phone_label" : ["SIL"],
  *         "phone_start" : [2.190000],
