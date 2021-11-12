@@ -30,6 +30,7 @@ Website](https://alphacephei.com/vosk).
 1. Clone the `ETS fork` of the `Vosk API` repository [https://github.com/EducationalTestingService/vosk-api](https://github.com/EducationalTestingService/vosk-api).
 
 2. If you are using your own custom ASR model, copy the model into the `model` directory in the structure shared in the section `Model structure` [on VOSK-API website](https://alphacephei.com/vosk/models). Alternatively, you can download one of the [open-source ASR models available on Vosk-API website](https://alphacephei.com/vosk/models) and copy them into the `model` directory.
+NOTE: To be able to extract phoneme labels and timestamps, you need to include the `phones.txt` file that was used during ASR model buildiong in the `model/graph` directory, so Vosk's open source models may not work out of the box.
 
 3. Add the audio file to be used to test the C test script under `c` and rename the file to `test.wav` to use the script as is. 
 
