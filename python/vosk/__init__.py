@@ -66,6 +66,9 @@ class KaldiRecognizer(object):
     def SetMaxAlternatives(self, max_alternatives):
         _c.vosk_recognizer_set_max_alternatives(self._handle, max_alternatives)
 
+    def SetResultOptions(self, result_opts):
+        _c.vosk_recognizer_set_result_options(self._handle, result_opts)
+
     def SetWords(self, enable_words):
         _c.vosk_recognizer_set_words(self._handle, 1 if enable_words else 0)
 
