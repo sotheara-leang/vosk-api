@@ -44,13 +44,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="vosk",
-    version="0.3.32",
-    author="Alpha Cephei Inc",
-    author_email="contact@alphacephei.com",
-    description="Offline open source speech recognition API based on Kaldi and Vosk",
+    version="0.3.41",
+    author="Educational Testing Service",
+    author_email="rubale@ets.org",
+    description="Offline open source speech recognition API based on Kaldi and Vosk with additional features from ETS",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/alphacep/vosk-api",
+    url="https://github.com/EducationalTestingService/vosk-api",
     packages=setuptools.find_packages(),
     package_data = {'vosk': ['*.so', '*.dll', '*.dyld']},
     include_package_data=True,
@@ -65,7 +65,7 @@ setuptools.setup(
     cmdclass=cmdclass,
     python_requires='>=3',
     zip_safe=False, # Since we load so file from the filesystem, we can not run from zip file
-    setup_requires=['cffi>=1.0'],
+    setup_requires=['cffi>=1.0'],                                                                             
     install_requires=['cffi>=1.0'],
     cffi_modules=['vosk_builder.py:ffibuilder'],
 )

@@ -415,6 +415,59 @@ bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_
     return true;
 }
 
+const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
+{
+    CompactLattice aligned_lat;
+    if (model_->winfo_) {
+        WordAlignLattice(rlat, *model_->trans_model_, *model_->winfo_, 0, &aligned_lat);
+    } else {
+        aligned_lat = rlat;
+    }
+
+    MinimumBayesRisk mbr(aligned_lat);
+    const vector<BaseFloat> &conf = mbr.GetOneBestConfidences();
+    const vector<int32> &words = mbr.GetOneBest();
+    const vector<pair<BaseFloat, BaseFloat> > &times =
+          mbr.GetOneBestTimes();
+
+    int size = words.size();
+
+    json::JSON obj;
+    stringstream text;
+
+    // Create JSON object
+    for (int i = 0; i < size; i++) {
+        json::JSON word;
+
+        if (words_) {
+            word["word"] = model_->word_syms_->Find(words[i]);
+            word["start"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
+            word["end"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].second) * 0.03;
+            word["conf"] = conf[i];
+            obj["result"].append(word);
+        }
+
+        if (i) {
+            text << " ";
+        }
+        text << model_->word_syms_->Find(words[i]);
+    }
+    obj["text"] = text.str();
+
+    if (spk_model_) {
+        Vector<BaseFloat> xvector;
+        int num_spk_frames;
+        if (GetSpkVector(xvector, &num_spk_frames)) {
+            for (int i = 0; i < xvector.Dim(); i++) {
+                obj["spk"].append(xvector(i));
+            }
+            obj["spk_frames"] = num_spk_frames;
+        }
+    }
+
+    return StoreReturn(obj.dump());
+}
+
 // Customized CompactLatticeToWordProns method in Kaldi to return weights
 static bool CompactLatticeToWordPronsWeight(
      const TransitionModel &tmodel,
@@ -534,31 +587,28 @@ void ComputePhoneInfo(const TransitionModel &tmodel, const CompactLattice &clat,
     
 }
 
-const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
+const char *KaldiRecognizer::WordandPhoneResult(CompactLattice &rlat)
 {
+    //Computes aligned word and phone-level results without MBR decoding
     CompactLattice aligned_lat;
     if (model_->winfo_) {
         WordAlignLattice(rlat, *model_->trans_model_, *model_->winfo_, 0, &aligned_lat);
     } else {
         aligned_lat = rlat;
     }
-
-    kaldi::MinimumBayesRiskOptions mbr_options;
-
+    
     std::vector<std::vector<std::string> > phoneme_labels;
     std::vector<std::vector<int32> > phone_lengths;
-    int phon_vec_size = 1;
     std::vector<kaldi::BaseFloat> lm_costs;
     std::vector<kaldi::BaseFloat> acoustic_costs;
 
-    if (model_->phone_syms_loaded_){  
-        // Compute phone info if phone symbol table is provided  
+    //Compute phone information from lattice
+    ComputePhoneInfo(*model_->trans_model_, aligned_lat, *model_->word_syms_, *model_->phone_symbol_table_, &phoneme_labels, &phone_lengths, &lm_costs, &acoustic_costs);
+    int phon_vec_size = phoneme_labels.size();
 
-        ComputePhoneInfo(*model_->trans_model_, aligned_lat, *model_->word_syms_, *model_->phone_symbol_table_, &phoneme_labels, &phone_lengths, &lm_costs, &acoustic_costs);
-        phon_vec_size = phoneme_labels.size();
-        mbr_options.print_silence = true; // Print silences in the word-level outputs only if you need phone outputs
-        mbr_options.decode_mbr = false; // Turn off MBR decoding if you want to print out phone information
-    }
+    kaldi::MinimumBayesRiskOptions mbr_options;
+    mbr_options.print_silence = true; //Print silences in the word-level outputs only if you need phone outputs
+    mbr_options.decode_mbr = false; // Turn off MBR decoding if you want to print out phone information
     
     MinimumBayesRisk mbr(aligned_lat, mbr_options);
     const vector<BaseFloat> &conf = mbr.GetOneBestConfidences();
@@ -571,59 +621,58 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
     json::JSON obj;
     stringstream text;
     int phone_ptr=0;
+
     // Create JSON object
     for (int i = 0; i < size; i++) {
         json::JSON word;
     
-        // When printing silences some extra silence words that we call "gaps" that have length of 0 seconds 
-        // get printed out so we filter them out
-        // It is possible to have trailing silences in the word output that are not present in the phone output so we 
-        // filter them to generate consistent outputs
+        //When printing silences some extra silence words that we call "gaps" that have length of 0 seconds 
+        //get printed out so we filter them out
+        //It is possible to have trailing silences in the word output that are not present in the phone output so we 
+        //filter them to generate consistent outputs
         if ((samples_round_start_ / sample_frequency_ + (frame_offset_ + (times[i].second-times[i].first)) * 0.03) > 0.0 && phone_ptr < phon_vec_size) {
             
             word["word"] = model_->word_syms_->Find(word_ids[i]);
             word["start"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
             word["end"] = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].second) * 0.03;
-            word["conf"] = conf[i]; 
-
-            if (model_->phone_syms_loaded_ && !words_){ //Add phone info to json if phone symbol table is provided
-                kaldi::BaseFloat phone_start_time = 0.0;
-                kaldi::BaseFloat phone_end_time = 0.0;
-                // Also add LM and Acoustic costs to the result json
-                word["lm_cost"] = lm_costs[phone_ptr]; 
-                word["acoustic_cost"] = acoustic_costs[phone_ptr];
+            word["conf"] = conf[i];
+            word["lm_cost"] = lm_costs[phone_ptr]; 
+            word["acoustic_cost"] = acoustic_costs[phone_ptr];
+            
+            kaldi::BaseFloat phone_start_time = 0.0;
+            kaldi::BaseFloat phone_end_time = 0.0;
                         
-                // If there are silences without phone output (since they are coming from different places) then set the label and timestamps
-                if (word_ids[i] == 0 && phoneme_labels[phone_ptr][0] != "SIL"){
-                    word["phone_label"].append( "SIL" );
-                    phone_start_time=samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
-                    phone_end_time = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].second) * 0.03;
+            //If there are silences without phone output (since they are coming from different places) then set the label and timestamps
+            if (word_ids[i] == 0 && phoneme_labels[phone_ptr][0] != "SIL"){
+                word["phone_label"].append( "SIL" );
+                phone_start_time=samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
+                phone_end_time = samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].second) * 0.03;
+                word["phone_start"].append( phone_start_time );
+                word["phone_end"].append( phone_end_time );
+            }
+
+            //Else add the information generated from ComputePhoneInfo to results
+            else {
+                for ( auto phone: phoneme_labels[phone_ptr]){
+
+                    word["phone_label"].append( phone );
+                }
+                //Compute timestamps from phone lengths                               
+                for (int x=0; x < phone_lengths[phone_ptr].size(); x++){
+                    if (x==0){
+                        phone_start_time=samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
+                        phone_end_time = phone_start_time + (phone_lengths[phone_ptr][x]) * 0.03;
+                    }
+                    else{
+                        phone_start_time = phone_end_time;
+                        phone_end_time = phone_start_time + (phone_lengths[phone_ptr][x]) * 0.03;
+                    }
                     word["phone_start"].append( phone_start_time );
                     word["phone_end"].append( phone_end_time );
-                }
-
-                // Else add the information generated from ComputePhoneInfo to results
-                else {
-                    for ( auto phone: phoneme_labels[phone_ptr]){
-
-                        word["phone_label"].append( phone );
-                    }                               
-                    for (int x=0; x < phone_lengths[phone_ptr].size(); x++){
-                        if (x==0){
-                            phone_start_time=samples_round_start_ / sample_frequency_ + (frame_offset_ + times[i].first) * 0.03;
-                            phone_end_time = phone_start_time + (phone_lengths[phone_ptr][x]) * 0.03;
-                        }
-                        else{
-                            phone_start_time = phone_end_time;
-                            phone_end_time = phone_start_time + (phone_lengths[phone_ptr][x]) * 0.03;
-                        }
-                        word["phone_start"].append( phone_start_time );
-                        word["phone_end"].append( phone_end_time );
-                    }               
-                    phone_ptr += 1;
-                }                
-            }
-            
+                }               
+                phone_ptr += 1;
+            }                
+                   
             obj["result"].append(word);
 
             if (word_ids[i] != 0){ // Don't print silence symbols
@@ -824,12 +873,22 @@ const char* KaldiRecognizer::GetResult()
     // Apply rescoring weight
     fst::ScaleLattice(fst::GraphLatticeScale(0.9), &rlat);
 
-    if (max_alternatives_ == 0) {
+// Check for the results option type and generate results accordingly
+   if (max_alternatives_ == 0 && (strcmp(result_opts_, "words")) == 0) {
+        words_=1;
         return MbrResult(rlat);
+    } else if (max_alternatives_ == 0 && strcmp(result_opts_, "phones") == 0) {        
+        if (model_->phone_syms_loaded_){         
+            return WordandPhoneResult(rlat);
+        }
+        else{             
+            KALDI_ERR << "Cannot generate phone results as phone symbol table was not provided";
+        }
+    } else if (strcmp(result_opts_, "words")!=0 && strcmp(result_opts_, "phones")!=0){        
+        KALDI_ERR << "Invalid recognizer result options";
     } else {
         return NbestResult(rlat);
-    }
-
+    } 
 }
 
 

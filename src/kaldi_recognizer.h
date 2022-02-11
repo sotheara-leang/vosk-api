@@ -69,6 +69,7 @@ class KaldiRecognizer {
         const char *StoreEmptyReturn();
         const char *StoreReturn(const string &res);
         const char *MbrResult(CompactLattice &clat);
+        const char *WordandPhoneResult(CompactLattice &clat);
         const char *NbestResult(CompactLattice &clat);
 
         Model *model_ = nullptr;
