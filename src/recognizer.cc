@@ -593,7 +593,7 @@ void ComputePhoneInfo(const TransitionModel &tmodel, const CompactLattice &clat,
     
 }
 
-const char *KaldiRecognizer::WordandPhoneResult(CompactLattice &rlat)
+const char *Recognizer::WordandPhoneResult(CompactLattice &rlat)
 {
     //Computes aligned word and phone-level results without MBR decoding
     CompactLattice aligned_lat;
